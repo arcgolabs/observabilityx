@@ -11,7 +11,7 @@ import (
 
 func (a *Adapter) normalizeMetricName(name string) string {
 	metricSegment := normalizeMetricSegment(name, "metric")
-	return normalizeMetricSegment(a.namespace+"_"+metricSegment, "arcgo_metric")
+	return normalizeMetricSegment(a.namespace+"_"+metricSegment, "observabilityx_metric")
 }
 
 func normalizeMetricSegment(raw, fallback string) string {

@@ -13,8 +13,8 @@ With `v0.2.0`, metrics are declared through typed specs before values are record
 
 By default it uses:
 
-- `otel.Tracer("github.com/DaiYuANg/arcgo")`
-- `otel.Meter("github.com/DaiYuANg/arcgo")`
+- `otel.Tracer("github.com/arcgolabs/observabilityx")`
+- `otel.Meter("github.com/arcgolabs/observabilityx")`
 
 You can also supply your own tracer/meter if your application sets up an SDK provider/exporter.
 
@@ -26,8 +26,8 @@ package main
 import (
 	"context"
 
-	"github.com/DaiYuANg/arcgo/observabilityx"
-	otelobs "github.com/DaiYuANg/arcgo/observabilityx/otel"
+	"github.com/arcgolabs/observabilityx"
+	otelobs "github.com/arcgolabs/observabilityx/otel"
 	"go.opentelemetry.io/otel"
 )
 

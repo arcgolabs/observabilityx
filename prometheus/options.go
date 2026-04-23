@@ -4,11 +4,11 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	prom "github.com/prometheus/client_golang/prometheus"
 )
 
-const defaultNamespace = "arcgo"
+const defaultNamespace = "observabilityx"
 
 // Option configures Prometheus observability adapter.
 type Option func(*config)

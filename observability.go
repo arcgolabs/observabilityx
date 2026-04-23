@@ -63,7 +63,7 @@ type Gauge interface {
 	Set(ctx context.Context, value float64, attrs ...Attribute)
 }
 
-// Observability is the shared observability facade used by arcgo packages.
+// Observability is the shared observability facade used by application packages.
 //
 // Implementations are expected to be safe for concurrent use.
 type Observability interface {

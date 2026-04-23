@@ -9,7 +9,7 @@ weight: 3
 
 The Prometheus backend provides an HTTP handler via `promobs.Adapter.Handler()`. You can mount it on any router/framework.
 
-Below is a minimal example mounting `/metrics` using `httpx` + `std` adapter (chi router).
+Below is a minimal example mounting `/metrics` using the standard library HTTP mux.
 
 ## Example
 
@@ -18,26 +18,19 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 
-	"github.com/DaiYuANg/arcgo/httpx"
-	"github.com/DaiYuANg/arcgo/httpx/adapter"
-	"github.com/DaiYuANg/arcgo/httpx/adapter/std"
-	promobs "github.com/DaiYuANg/arcgo/observabilityx/prometheus"
+	promobs "github.com/arcgolabs/observabilityx/prometheus"
 )
 
 func main() {
 	prom := promobs.New(promobs.WithNamespace("app"))
 
-	stdAdapter := std.New(nil, adapter.HumaOptions{DisableDocsRoutes: true})
-	metricsServer := httpx.New(httpx.WithAdapter(stdAdapter))
-
-	stdAdapter.Router().Handle("/metrics", prom.Handler())
+	http.Handle("/metrics", prom.Handler())
 
 	fmt.Println("metrics route registered: GET /metrics")
-	_ = metricsServer
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		panic(err)
+	}
 }
 ```
-
-## Runnable example (repository)
-
-- [examples/observabilityx/multi](https://github.com/DaiYuANg/arcgo/tree/main/examples/observabilityx/multi)

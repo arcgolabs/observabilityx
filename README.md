@@ -1,23 +1,22 @@
 ## Overview
 
-`observabilityx` provides an optional unified facade for **logging / tracing / metrics**. It exists to keep arcgo package APIs stable while allowing observability backends to stay optional and composable.
+`observabilityx` provides an optional unified facade for **logging / tracing / metrics**. It exists to keep package APIs stable while allowing observability backends to stay optional and composable.
 
 From `v0.2.0`, metrics are declared through typed specs and instruments instead of ad-hoc `AddCounter` / `RecordHistogram` calls.
 
 ## Install
 
 ```bash
-go get github.com/DaiYuANg/arcgo/observabilityx@latest
-go get github.com/DaiYuANg/arcgo/observabilityx/otel@latest
-go get github.com/DaiYuANg/arcgo/observabilityx/prometheus@latest
+go get github.com/arcgolabs/observabilityx@latest
+go get github.com/arcgolabs/observabilityx/otel@latest
+go get github.com/arcgolabs/observabilityx/prometheus@latest
 ```
 
 ## Documentation map
 
-- Release notes: [observabilityx v0.2.0](./release-v0.2.0)
-- Minimal usage + multi-backend composition: [Getting Started](./getting-started)
-- Export `/metrics` with Prometheus: [Prometheus metrics endpoint](./prometheus-metrics)
-- OTel backend notes: [OpenTelemetry backend](./otel-backend)
+- Minimal usage + multi-backend composition: [Getting Started](./docs/getting-started.md)
+- Export `/metrics` with Prometheus: [Prometheus metrics endpoint](./docs/prometheus-metrics.md)
+- OTel backend notes: [OpenTelemetry backend](./docs/otel-backend.md)
 
 ## Backends
 
@@ -30,10 +29,6 @@ go get github.com/DaiYuANg/arcgo/observabilityx/prometheus@latest
 - Declare a spec once with `NewCounterSpec`, `NewHistogramSpec`, `NewUpDownCounterSpec`, or `NewGaugeSpec`.
 - Ask the backend for an instrument through `obs.Counter(...)`, `obs.Histogram(...)`, `obs.UpDownCounter(...)`, or `obs.Gauge(...)`.
 - Record values through the returned instrument.
-
-## Runnable examples (repository)
-
-- Multi backend: [examples/observabilityx/multi](https://github.com/DaiYuANg/arcgo/tree/main/examples/observabilityx/multi)
 
 ## Integration Guide
 

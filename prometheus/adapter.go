@@ -5,9 +5,9 @@ import (
 	"log/slog"
 	"net/http"
 
-	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
-	"github.com/DaiYuANg/arcgo/pkg/option"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/observabilityx"
+	"github.com/arcgolabs/pkg/option"
 	prom "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -20,10 +20,10 @@ type Adapter struct {
 	gatherer  prom.Gatherer
 	buckets   []float64
 
-	counters       *collectionmapping.ConcurrentMap[string, *counterInstrument]
-	upDownCounters *collectionmapping.ConcurrentMap[string, *gaugeInstrument]
-	histograms     *collectionmapping.ConcurrentMap[string, *histInstrument]
-	gauges         *collectionmapping.ConcurrentMap[string, *gaugeInstrument]
+	counters       collectionx.ConcurrentMap[string, *counterInstrument]
+	upDownCounters collectionx.ConcurrentMap[string, *gaugeInstrument]
+	histograms     collectionx.ConcurrentMap[string, *histInstrument]
+	gauges         collectionx.ConcurrentMap[string, *gaugeInstrument]
 }
 
 type counterInstrument struct {
@@ -55,10 +55,10 @@ func New(opts ...Option) *Adapter {
 		register:       cfg.register,
 		gatherer:       cfg.gatherer,
 		buckets:        cfg.buckets.Values(),
-		counters:       collectionmapping.NewConcurrentMap[string, *counterInstrument](),
-		upDownCounters: collectionmapping.NewConcurrentMap[string, *gaugeInstrument](),
-		histograms:     collectionmapping.NewConcurrentMap[string, *histInstrument](),
-		gauges:         collectionmapping.NewConcurrentMap[string, *gaugeInstrument](),
+		counters:       collectionx.NewConcurrentMap[string, *counterInstrument](),
+		upDownCounters: collectionx.NewConcurrentMap[string, *gaugeInstrument](),
+		histograms:     collectionx.NewConcurrentMap[string, *histInstrument](),
+		gauges:         collectionx.NewConcurrentMap[string, *gaugeInstrument](),
 	}
 }
 

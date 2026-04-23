@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/observabilityx"
 	prom "github.com/prometheus/client_golang/prometheus"
 	"github.com/samber/oops"

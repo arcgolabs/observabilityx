@@ -23,9 +23,9 @@ package main
 import (
 	"context"
 
-	"github.com/DaiYuANg/arcgo/observabilityx"
-	otelobs "github.com/DaiYuANg/arcgo/observabilityx/otel"
-	promobs "github.com/DaiYuANg/arcgo/observabilityx/prometheus"
+	"github.com/arcgolabs/observabilityx"
+	otelobs "github.com/arcgolabs/observabilityx/otel"
+	promobs "github.com/arcgolabs/observabilityx/prometheus"
 )
 
 func main() {
@@ -75,7 +75,3 @@ func main() {
 	queueDepth.Set(ctx, 3, observabilityx.String("result", "ok"))
 }
 ```
-
-## Runnable example (repository)
-
-- [examples/observabilityx/multi](https://github.com/DaiYuANg/arcgo/tree/main/examples/observabilityx/multi)

@@ -19,7 +19,7 @@ func TestAdapterMetrics(t *testing.T) {
 	obs := promobs.New(
 		promobs.WithRegisterer(registry),
 		promobs.WithGatherer(registry),
-		promobs.WithNamespace("arcgo_test"),
+		promobs.WithNamespace("observabilityx_test"),
 	)
 
 	obs.Counter(observabilityx.NewCounterSpec("authx_authenticate_total", observabilityx.WithLabelKeys("result"))).
@@ -49,5 +49,5 @@ func TestAdapterHandler(t *testing.T) {
 	obs.Handler().ServeHTTP(w, req)
 
 	require.Equal(t, 200, w.Code)
-	require.Contains(t, w.Body.String(), "eventx_publish_total")
+	require.Contains(t, w.Body.String(), "observabilityx_eventx_publish_total")
 }

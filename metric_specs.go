@@ -4,7 +4,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/arcgolabs/collectionx"
+	collectionlist "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/pkg/option"
 	"github.com/samber/lo"
 )
@@ -17,7 +17,7 @@ type MetricSpec struct {
 	Name        string
 	Description string
 	Unit        string
-	LabelKeys   collectionx.List[string]
+	LabelKeys   *collectionlist.List[string]
 }
 
 // CounterSpec declares an increasing int64 metric.
@@ -33,7 +33,7 @@ type UpDownCounterSpec struct {
 // HistogramSpec declares a float64 histogram metric.
 type HistogramSpec struct {
 	MetricSpec
-	Buckets collectionx.List[float64]
+	Buckets *collectionlist.List[float64]
 }
 
 // GaugeSpec declares a float64 gauge metric.
@@ -58,12 +58,12 @@ func WithUnit(unit string) MetricOption {
 // WithLabelKeys sets the declared metric label keys.
 func WithLabelKeys(labelKeys ...string) MetricOption {
 	return func(spec *MetricSpec) {
-		spec.LabelKeys = collectionx.NewList(labelKeys...)
+		spec.LabelKeys = collectionlist.NewList(labelKeys...)
 	}
 }
 
-// WithMetricLabels sets the declared metric label keys from a collectionx list.
-func WithMetricLabels(labelKeys collectionx.List[string]) MetricOption {
+// WithMetricLabels sets the declared metric label keys from a collectionx/list value.
+func WithMetricLabels(labelKeys *collectionlist.List[string]) MetricOption {
 	return func(spec *MetricSpec) {
 		spec.LabelKeys = cloneStringList(labelKeys)
 	}
@@ -74,7 +74,7 @@ func NewCounterSpec(name string, opts ...MetricOption) CounterSpec {
 	spec := CounterSpec{
 		MetricSpec: MetricSpec{
 			Name:      name,
-			LabelKeys: collectionx.NewList[string](),
+			LabelKeys: collectionlist.NewList[string](),
 		},
 	}
 	option.Apply(&spec.MetricSpec, opts...)
@@ -86,7 +86,7 @@ func NewUpDownCounterSpec(name string, opts ...MetricOption) UpDownCounterSpec {
 	spec := UpDownCounterSpec{
 		MetricSpec: MetricSpec{
 			Name:      name,
-			LabelKeys: collectionx.NewList[string](),
+			LabelKeys: collectionlist.NewList[string](),
 		},
 	}
 	option.Apply(&spec.MetricSpec, opts...)
@@ -98,9 +98,9 @@ func NewHistogramSpec(name string, opts ...MetricOption) HistogramSpec {
 	spec := HistogramSpec{
 		MetricSpec: MetricSpec{
 			Name:      name,
-			LabelKeys: collectionx.NewList[string](),
+			LabelKeys: collectionlist.NewList[string](),
 		},
-		Buckets: collectionx.NewList[float64](),
+		Buckets: collectionlist.NewList[float64](),
 	}
 	option.Apply(&spec.MetricSpec, opts...)
 	return NormalizeHistogramSpec(spec)
@@ -111,7 +111,7 @@ func NewGaugeSpec(name string, opts ...MetricOption) GaugeSpec {
 	spec := GaugeSpec{
 		MetricSpec: MetricSpec{
 			Name:      name,
-			LabelKeys: collectionx.NewList[string](),
+			LabelKeys: collectionlist.NewList[string](),
 		},
 	}
 	option.Apply(&spec.MetricSpec, opts...)
@@ -149,12 +149,12 @@ func NormalizeHistogramSpec(spec HistogramSpec) HistogramSpec {
 
 // WithBuckets returns a normalized histogram spec copy with custom buckets.
 func (spec HistogramSpec) WithBuckets(buckets ...float64) HistogramSpec {
-	spec.Buckets = collectionx.NewList(buckets...)
+	spec.Buckets = collectionlist.NewList(buckets...)
 	return NormalizeHistogramSpec(spec)
 }
 
 // WithBucketList returns a normalized histogram spec copy with custom buckets.
-func (spec HistogramSpec) WithBucketList(buckets collectionx.List[float64]) HistogramSpec {
+func (spec HistogramSpec) WithBucketList(buckets *collectionlist.List[float64]) HistogramSpec {
 	spec.Buckets = cloneFloat64List(buckets)
 	return NormalizeHistogramSpec(spec)
 }
@@ -165,30 +165,30 @@ func NormalizeGaugeSpec(spec GaugeSpec) GaugeSpec {
 	return spec
 }
 
-func normalizeLabelKeys(labelKeys collectionx.List[string]) collectionx.List[string] {
+func normalizeLabelKeys(labelKeys *collectionlist.List[string]) *collectionlist.List[string] {
 	values := lo.FilterMap(valuesOrEmpty(labelKeys), func(labelKey string, _ int) (string, bool) {
 		normalized := normalizeMetricLabelKey(labelKey)
 		return normalized, normalized != ""
 	})
-	return collectionx.NewList(lo.Uniq(values)...)
+	return collectionlist.NewList(lo.Uniq(values)...)
 }
 
-func normalizeBuckets(buckets collectionx.List[float64]) collectionx.List[float64] {
+func normalizeBuckets(buckets *collectionlist.List[float64]) *collectionlist.List[float64] {
 	values := lo.Filter(valuesOrEmpty(buckets), func(bucket float64, _ int) bool {
 		return bucket > 0
 	})
-	return collectionx.NewList(values...)
+	return collectionlist.NewList(values...)
 }
 
-func cloneStringList(values collectionx.List[string]) collectionx.List[string] {
-	return collectionx.NewList(valuesOrEmpty(values)...)
+func cloneStringList(values *collectionlist.List[string]) *collectionlist.List[string] {
+	return collectionlist.NewList(valuesOrEmpty(values)...)
 }
 
-func cloneFloat64List(values collectionx.List[float64]) collectionx.List[float64] {
-	return collectionx.NewList(valuesOrEmpty(values)...)
+func cloneFloat64List(values *collectionlist.List[float64]) *collectionlist.List[float64] {
+	return collectionlist.NewList(valuesOrEmpty(values)...)
 }
 
-func valuesOrEmpty[T any](values collectionx.List[T]) []T {
+func valuesOrEmpty[T any](values *collectionlist.List[T]) []T {
 	if values == nil {
 		return nil
 	}

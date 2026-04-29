@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionlist "github.com/arcgolabs/collectionx/list"
 	prom "github.com/prometheus/client_golang/prometheus"
 )
 
@@ -18,7 +18,7 @@ type config struct {
 	namespace string
 	register  prom.Registerer
 	gatherer  prom.Gatherer
-	buckets   collectionx.List[float64]
+	buckets   *collectionlist.List[float64]
 }
 
 func defaultConfig() config {
@@ -27,7 +27,7 @@ func defaultConfig() config {
 		namespace: defaultNamespace,
 		register:  prom.DefaultRegisterer,
 		gatherer:  prom.DefaultGatherer,
-		buckets:   collectionx.NewList(prom.DefBuckets...),
+		buckets:   collectionlist.NewList(prom.DefBuckets...),
 	}
 }
 
@@ -64,7 +64,7 @@ func WithGatherer(gatherer prom.Gatherer) Option {
 }
 
 // WithHistogramBuckets sets custom histogram buckets.
-func WithHistogramBuckets(buckets collectionx.List[float64]) Option {
+func WithHistogramBuckets(buckets *collectionlist.List[float64]) Option {
 	return func(cfg *config) {
 		if buckets != nil && !buckets.IsEmpty() {
 			cfg.buckets = buckets

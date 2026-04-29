@@ -7,7 +7,8 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionlist "github.com/arcgolabs/collectionx/list"
+	collectionmapping "github.com/arcgolabs/collectionx/mapping"
 	"github.com/arcgolabs/observabilityx"
 	"github.com/arcgolabs/pkg/option"
 	"github.com/samber/oops"
@@ -64,10 +65,10 @@ func New(opts ...Option) observabilityx.Observability {
 		logger:         observabilityx.NormalizeLogger(cfg.logger),
 		tracer:         cfg.tracer,
 		meter:          cfg.meter,
-		counters:       collectionx.NewConcurrentMap[string, metric.Int64Counter](),
-		upDownCounters: collectionx.NewConcurrentMap[string, metric.Int64UpDownCounter](),
-		histograms:     collectionx.NewConcurrentMap[string, metric.Float64Histogram](),
-		gauges:         collectionx.NewConcurrentMap[string, metric.Float64Gauge](),
+		counters:       collectionmapping.NewConcurrentMap[string, metric.Int64Counter](),
+		upDownCounters: collectionmapping.NewConcurrentMap[string, metric.Int64UpDownCounter](),
+		histograms:     collectionmapping.NewConcurrentMap[string, metric.Float64Histogram](),
+		gauges:         collectionmapping.NewConcurrentMap[string, metric.Float64Gauge](),
 	}
 }
 
@@ -76,10 +77,10 @@ type adapter struct {
 	tracer trace.Tracer
 	meter  metric.Meter
 
-	counters       collectionx.ConcurrentMap[string, metric.Int64Counter]
-	upDownCounters collectionx.ConcurrentMap[string, metric.Int64UpDownCounter]
-	histograms     collectionx.ConcurrentMap[string, metric.Float64Histogram]
-	gauges         collectionx.ConcurrentMap[string, metric.Float64Gauge]
+	counters       *collectionmapping.ConcurrentMap[string, metric.Int64Counter]
+	upDownCounters *collectionmapping.ConcurrentMap[string, metric.Int64UpDownCounter]
+	histograms     *collectionmapping.ConcurrentMap[string, metric.Float64Histogram]
+	gauges         *collectionmapping.ConcurrentMap[string, metric.Float64Gauge]
 }
 
 func (a *adapter) Logger() *slog.Logger {
@@ -143,7 +144,7 @@ func (a *adapter) counter(spec observabilityx.CounterSpec) (metric.Int64Counter,
 		"metric counter name is empty",
 		key.MetricSpec,
 		cacheMetricSpecKey("counter", key.MetricSpec),
-		func(adapter *adapter) collectionx.ConcurrentMap[string, metric.Int64Counter] {
+		func(adapter *adapter) *collectionmapping.ConcurrentMap[string, metric.Int64Counter] {
 			return adapter.counters
 		},
 		func(adapter *adapter, clean string) (metric.Int64Counter, error) {
@@ -161,7 +162,7 @@ func (a *adapter) upDownCounter(spec observabilityx.UpDownCounterSpec) (metric.I
 		"metric up-down counter name is empty",
 		key.MetricSpec,
 		cacheMetricSpecKey("up_down_counter", key.MetricSpec),
-		func(adapter *adapter) collectionx.ConcurrentMap[string, metric.Int64UpDownCounter] {
+		func(adapter *adapter) *collectionmapping.ConcurrentMap[string, metric.Int64UpDownCounter] {
 			return adapter.upDownCounters
 		},
 		func(adapter *adapter, clean string) (metric.Int64UpDownCounter, error) {
@@ -179,7 +180,7 @@ func (a *adapter) histogram(spec observabilityx.HistogramSpec) (metric.Float64Hi
 		"metric histogram name is empty",
 		key.MetricSpec,
 		cacheHistogramSpecKey(key),
-		func(adapter *adapter) collectionx.ConcurrentMap[string, metric.Float64Histogram] {
+		func(adapter *adapter) *collectionmapping.ConcurrentMap[string, metric.Float64Histogram] {
 			return adapter.histograms
 		},
 		func(adapter *adapter, clean string) (metric.Float64Histogram, error) {
@@ -197,7 +198,7 @@ func (a *adapter) gauge(spec observabilityx.GaugeSpec) (metric.Float64Gauge, err
 		"metric gauge name is empty",
 		key.MetricSpec,
 		cacheMetricSpecKey("gauge", key.MetricSpec),
-		func(adapter *adapter) collectionx.ConcurrentMap[string, metric.Float64Gauge] {
+		func(adapter *adapter) *collectionmapping.ConcurrentMap[string, metric.Float64Gauge] {
 			return adapter.gauges
 		},
 		func(adapter *adapter, clean string) (metric.Float64Gauge, error) {
@@ -211,7 +212,7 @@ func metricInstrument[I any](
 	op, kind, emptyNameMessage string,
 	spec observabilityx.MetricSpec,
 	cacheKey string,
-	cacheFor func(*adapter) collectionx.ConcurrentMap[string, I],
+	cacheFor func(*adapter) *collectionmapping.ConcurrentMap[string, I],
 	create func(*adapter, string) (I, error),
 ) (I, error) {
 	var zero I
@@ -249,7 +250,7 @@ func metricInstrument[I any](
 
 type otelCounter struct {
 	counter   metric.Int64Counter
-	labelKeys collectionx.List[string]
+	labelKeys *collectionlist.List[string]
 }
 
 func (c otelCounter) Add(ctx context.Context, value int64, attrs ...observabilityx.Attribute) {
@@ -261,7 +262,7 @@ func (c otelCounter) Add(ctx context.Context, value int64, attrs ...observabilit
 
 type otelUpDownCounter struct {
 	counter   metric.Int64UpDownCounter
-	labelKeys collectionx.List[string]
+	labelKeys *collectionlist.List[string]
 }
 
 func (c otelUpDownCounter) Add(ctx context.Context, value int64, attrs ...observabilityx.Attribute) {
@@ -273,7 +274,7 @@ func (c otelUpDownCounter) Add(ctx context.Context, value int64, attrs ...observ
 
 type otelHistogram struct {
 	histogram metric.Float64Histogram
-	labelKeys collectionx.List[string]
+	labelKeys *collectionlist.List[string]
 }
 
 func (h otelHistogram) Record(ctx context.Context, value float64, attrs ...observabilityx.Attribute) {
@@ -282,7 +283,7 @@ func (h otelHistogram) Record(ctx context.Context, value float64, attrs ...obser
 
 type otelGauge struct {
 	gauge     metric.Float64Gauge
-	labelKeys collectionx.List[string]
+	labelKeys *collectionlist.List[string]
 }
 
 func (g otelGauge) Set(ctx context.Context, value float64, attrs ...observabilityx.Attribute) {

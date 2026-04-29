@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionlist "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/observabilityx"
 	prom "github.com/prometheus/client_golang/prometheus"
 	"github.com/samber/oops"
@@ -171,7 +171,7 @@ func helpText(description, metricName string) string {
 	return "Metric for " + metricName
 }
 
-func histogramBuckets(defaultBuckets []float64, specBuckets collectionx.List[float64]) []float64 {
+func histogramBuckets(defaultBuckets []float64, specBuckets *collectionlist.List[float64]) []float64 {
 	if specBuckets == nil || specBuckets.IsEmpty() {
 		return defaultBuckets
 	}

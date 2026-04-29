@@ -3,12 +3,12 @@ package observabilityx
 import (
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionlist "github.com/arcgolabs/collectionx/list"
 	"github.com/samber/lo"
 )
 
 // FilterMetricAttributes returns attributes constrained to the declared label schema.
-func FilterMetricAttributes(labelKeys collectionx.List[string], attrs ...Attribute) []Attribute {
+func FilterMetricAttributes(labelKeys *collectionlist.List[string], attrs ...Attribute) []Attribute {
 	normalizedKeys := valuesOrEmpty(normalizeLabelKeys(labelKeys))
 	if len(normalizedKeys) == 0 || len(attrs) == 0 {
 		return nil
@@ -25,13 +25,13 @@ func FilterMetricAttributes(labelKeys collectionx.List[string], attrs ...Attribu
 }
 
 // MetricLabelMap returns a normalized label map constrained to the declared label schema.
-func MetricLabelMap(labelKeys collectionx.List[string], attrs ...Attribute) map[string]string {
+func MetricLabelMap(labelKeys *collectionlist.List[string], attrs ...Attribute) map[string]string {
 	normalizedKeys := valuesOrEmpty(normalizeLabelKeys(labelKeys))
 	if len(normalizedKeys) == 0 || len(attrs) == 0 {
 		return nil
 	}
 
-	allowed := collectionx.NewList(normalizedKeys...).Values()
+	allowed := collectionlist.NewList(normalizedKeys...).Values()
 	return lo.PickBy(buildMetricLabelMap(attrs), func(key string, _ string) bool {
 		return lo.Contains(allowed, key)
 	})

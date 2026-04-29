@@ -4,14 +4,14 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/arcgolabs/collectionx"
+	collectionlist "github.com/arcgolabs/collectionx/list"
 )
 
 // Multi combines multiple observability backends into one.
 //
 // Use this to send telemetry to more than one backend (for example OTel + Prometheus).
 func Multi(backends ...Observability) Observability {
-	filtered := collectionx.NewList(backends...).Reject(func(_ int, backend Observability) bool {
+	filtered := collectionlist.NewList(backends...).Reject(func(_ int, backend Observability) bool {
 		return backend == nil
 	})
 	if filtered.IsEmpty() {
@@ -31,7 +31,7 @@ func Multi(backends ...Observability) Observability {
 }
 
 type multiObservability struct {
-	backends collectionx.List[Observability]
+	backends *collectionlist.List[Observability]
 	logger   *slog.Logger
 }
 
@@ -50,7 +50,7 @@ func (m *multiObservability) StartSpan(
 
 	firstBackend, _ := m.backends.GetFirst()
 	nextCtx, firstSpan := firstBackend.StartSpan(ctx, name, attrs...)
-	spans := collectionx.NewListWithCapacity[Span](m.backends.Len())
+	spans := collectionlist.NewListWithCapacity[Span](m.backends.Len())
 	if firstSpan != nil {
 		spans.Add(firstSpan)
 	}
@@ -68,7 +68,7 @@ func (m *multiObservability) StartSpan(
 }
 
 func (m *multiObservability) Counter(spec CounterSpec) Counter {
-	counters := collectionx.NewListWithCapacity[Counter](m.backends.Len())
+	counters := collectionlist.NewListWithCapacity[Counter](m.backends.Len())
 	m.backends.Each(func(_ int, backend Observability) {
 		counter := backend.Counter(spec)
 		if counter != nil {
@@ -82,7 +82,7 @@ func (m *multiObservability) Counter(spec CounterSpec) Counter {
 }
 
 func (m *multiObservability) UpDownCounter(spec UpDownCounterSpec) UpDownCounter {
-	counters := collectionx.NewListWithCapacity[UpDownCounter](m.backends.Len())
+	counters := collectionlist.NewListWithCapacity[UpDownCounter](m.backends.Len())
 	m.backends.Each(func(_ int, backend Observability) {
 		counter := backend.UpDownCounter(spec)
 		if counter != nil {
@@ -96,7 +96,7 @@ func (m *multiObservability) UpDownCounter(spec UpDownCounterSpec) UpDownCounter
 }
 
 func (m *multiObservability) Histogram(spec HistogramSpec) Histogram {
-	histograms := collectionx.NewListWithCapacity[Histogram](m.backends.Len())
+	histograms := collectionlist.NewListWithCapacity[Histogram](m.backends.Len())
 	m.backends.Each(func(_ int, backend Observability) {
 		histogram := backend.Histogram(spec)
 		if histogram != nil {
@@ -110,7 +110,7 @@ func (m *multiObservability) Histogram(spec HistogramSpec) Histogram {
 }
 
 func (m *multiObservability) Gauge(spec GaugeSpec) Gauge {
-	gauges := collectionx.NewListWithCapacity[Gauge](m.backends.Len())
+	gauges := collectionlist.NewListWithCapacity[Gauge](m.backends.Len())
 	m.backends.Each(func(_ int, backend Observability) {
 		gauge := backend.Gauge(spec)
 		if gauge != nil {
@@ -124,7 +124,7 @@ func (m *multiObservability) Gauge(spec GaugeSpec) Gauge {
 }
 
 type multiCounter struct {
-	counters collectionx.List[Counter]
+	counters *collectionlist.List[Counter]
 }
 
 func (m multiCounter) Add(ctx context.Context, value int64, attrs ...Attribute) {
@@ -134,7 +134,7 @@ func (m multiCounter) Add(ctx context.Context, value int64, attrs ...Attribute) 
 }
 
 type multiUpDownCounter struct {
-	counters collectionx.List[UpDownCounter]
+	counters *collectionlist.List[UpDownCounter]
 }
 
 func (m multiUpDownCounter) Add(ctx context.Context, value int64, attrs ...Attribute) {
@@ -144,7 +144,7 @@ func (m multiUpDownCounter) Add(ctx context.Context, value int64, attrs ...Attri
 }
 
 type multiHistogram struct {
-	histograms collectionx.List[Histogram]
+	histograms *collectionlist.List[Histogram]
 }
 
 func (m multiHistogram) Record(ctx context.Context, value float64, attrs ...Attribute) {
@@ -154,7 +154,7 @@ func (m multiHistogram) Record(ctx context.Context, value float64, attrs ...Attr
 }
 
 type multiGauge struct {
-	gauges collectionx.List[Gauge]
+	gauges *collectionlist.List[Gauge]
 }
 
 func (m multiGauge) Set(ctx context.Context, value float64, attrs ...Attribute) {
@@ -164,7 +164,7 @@ func (m multiGauge) Set(ctx context.Context, value float64, attrs ...Attribute) 
 }
 
 type multiSpan struct {
-	spans collectionx.List[Span]
+	spans *collectionlist.List[Span]
 }
 
 func (s multiSpan) End() {

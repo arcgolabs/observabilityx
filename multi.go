@@ -11,7 +11,7 @@ import (
 //
 // Use this to send telemetry to more than one backend (for example OTel + Prometheus).
 func Multi(backends ...Observability) Observability {
-	filtered := collectionlist.NewList(backends...).Reject(func(_ int, backend Observability) bool {
+	filtered := collectionlist.RejectList(collectionlist.NewList(backends...), func(_ int, backend Observability) bool {
 		return backend == nil
 	})
 	if filtered.IsEmpty() {
@@ -54,7 +54,10 @@ func (m *multiObservability) StartSpan(
 	if firstSpan != nil {
 		spans.Add(firstSpan)
 	}
-	m.backends.Drop(1).Range(func(_ int, backend Observability) bool {
+	m.backends.Range(func(index int, backend Observability) bool {
+		if index == 0 {
+			return true
+		}
 		_, span := backend.StartSpan(nextCtx, name, attrs...)
 		if span != nil {
 			spans.Add(span)
@@ -68,12 +71,8 @@ func (m *multiObservability) StartSpan(
 }
 
 func (m *multiObservability) Counter(spec CounterSpec) Counter {
-	counters := collectionlist.NewListWithCapacity[Counter](m.backends.Len())
-	m.backends.Each(func(_ int, backend Observability) {
-		counter := backend.Counter(spec)
-		if counter != nil {
-			counters.Add(counter)
-		}
+	counters := m.collect(func(backend Observability) Counter {
+		return backend.Counter(spec)
 	})
 	if counters.IsEmpty() {
 		return nopCounter{}
@@ -82,12 +81,8 @@ func (m *multiObservability) Counter(spec CounterSpec) Counter {
 }
 
 func (m *multiObservability) UpDownCounter(spec UpDownCounterSpec) UpDownCounter {
-	counters := collectionlist.NewListWithCapacity[UpDownCounter](m.backends.Len())
-	m.backends.Each(func(_ int, backend Observability) {
-		counter := backend.UpDownCounter(spec)
-		if counter != nil {
-			counters.Add(counter)
-		}
+	counters := m.collect(func(backend Observability) UpDownCounter {
+		return backend.UpDownCounter(spec)
 	})
 	if counters.IsEmpty() {
 		return nopUpDownCounter{}
@@ -96,12 +91,8 @@ func (m *multiObservability) UpDownCounter(spec UpDownCounterSpec) UpDownCounter
 }
 
 func (m *multiObservability) Histogram(spec HistogramSpec) Histogram {
-	histograms := collectionlist.NewListWithCapacity[Histogram](m.backends.Len())
-	m.backends.Each(func(_ int, backend Observability) {
-		histogram := backend.Histogram(spec)
-		if histogram != nil {
-			histograms.Add(histogram)
-		}
+	histograms := m.collect(func(backend Observability) Histogram {
+		return backend.Histogram(spec)
 	})
 	if histograms.IsEmpty() {
 		return nopHistogram{}
@@ -110,12 +101,8 @@ func (m *multiObservability) Histogram(spec HistogramSpec) Histogram {
 }
 
 func (m *multiObservability) Gauge(spec GaugeSpec) Gauge {
-	gauges := collectionlist.NewListWithCapacity[Gauge](m.backends.Len())
-	m.backends.Each(func(_ int, backend Observability) {
-		gauge := backend.Gauge(spec)
-		if gauge != nil {
-			gauges.Add(gauge)
-		}
+	gauges := m.collect(func(backend Observability) Gauge {
+		return backend.Gauge(spec)
 	})
 	if gauges.IsEmpty() {
 		return nopGauge{}
@@ -123,13 +110,29 @@ func (m *multiObservability) Gauge(spec GaugeSpec) Gauge {
 	return multiGauge{gauges: gauges}
 }
 
+// collect builds one typed handle per backend and drops nil handles.
+// Go 1.27 generic methods let the fan-out logic stay shared while preserving
+// the concrete handle type at each public metric method.
+func (m *multiObservability) collect[T any](build func(Observability) T) *collectionlist.List[T] {
+	handles := collectionlist.NewListWithCapacity[T](m.backends.Len())
+	m.backends.Range(func(_ int, backend Observability) bool {
+		handle := build(backend)
+		if any(handle) != nil {
+			handles.Add(handle)
+		}
+		return true
+	})
+	return handles
+}
+
 type multiCounter struct {
 	counters *collectionlist.List[Counter]
 }
 
 func (m multiCounter) Add(ctx context.Context, value int64, attrs ...Attribute) {
-	m.counters.Each(func(_ int, counter Counter) {
+	m.counters.Range(func(_ int, counter Counter) bool {
 		counter.Add(ctx, value, attrs...)
+		return true
 	})
 }
 
@@ -138,8 +141,9 @@ type multiUpDownCounter struct {
 }
 
 func (m multiUpDownCounter) Add(ctx context.Context, value int64, attrs ...Attribute) {
-	m.counters.Each(func(_ int, counter UpDownCounter) {
+	m.counters.Range(func(_ int, counter UpDownCounter) bool {
 		counter.Add(ctx, value, attrs...)
+		return true
 	})
 }
 
@@ -148,8 +152,9 @@ type multiHistogram struct {
 }
 
 func (m multiHistogram) Record(ctx context.Context, value float64, attrs ...Attribute) {
-	m.histograms.Each(func(_ int, histogram Histogram) {
+	m.histograms.Range(func(_ int, histogram Histogram) bool {
 		histogram.Record(ctx, value, attrs...)
+		return true
 	})
 }
 
@@ -158,8 +163,9 @@ type multiGauge struct {
 }
 
 func (m multiGauge) Set(ctx context.Context, value float64, attrs ...Attribute) {
-	m.gauges.Each(func(_ int, gauge Gauge) {
+	m.gauges.Range(func(_ int, gauge Gauge) bool {
 		gauge.Set(ctx, value, attrs...)
+		return true
 	})
 }
 
@@ -168,8 +174,9 @@ type multiSpan struct {
 }
 
 func (s multiSpan) End() {
-	s.spans.Each(func(_ int, span Span) {
+	s.spans.Range(func(_ int, span Span) bool {
 		span.End()
+		return true
 	})
 }
 
@@ -177,13 +184,15 @@ func (s multiSpan) RecordError(err error) {
 	if err == nil {
 		return
 	}
-	s.spans.Each(func(_ int, span Span) {
+	s.spans.Range(func(_ int, span Span) bool {
 		span.RecordError(err)
+		return true
 	})
 }
 
 func (s multiSpan) SetAttributes(attrs ...Attribute) {
-	s.spans.Each(func(_ int, span Span) {
+	s.spans.Range(func(_ int, span Span) bool {
 		span.SetAttributes(attrs...)
+		return true
 	})
 }

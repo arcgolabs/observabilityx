@@ -39,3 +39,20 @@ func TestMulti(t *testing.T) {
 	require.EqualValues(t, 1, a.gaugeCount.Load())
 	require.EqualValues(t, 1, b.gaugeCount.Load())
 }
+
+func TestMulti_IgnoresNilBackends(t *testing.T) {
+	t.Parallel()
+
+	backend := newTestBackend()
+	obs := observabilityx.Multi(nil, backend, nil)
+
+	ctx, span := obs.StartSpan(context.Background(), "test")
+	require.NotNil(t, ctx)
+	require.NotNil(t, span)
+	span.End()
+
+	obs.Counter(observabilityx.NewCounterSpec("counter")).Add(ctx, 1)
+
+	require.EqualValues(t, 1, backend.spanCount.Load())
+	require.EqualValues(t, 1, backend.counterCount.Load())
+}

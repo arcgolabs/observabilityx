@@ -51,3 +51,57 @@ func TestAdapterHandler(t *testing.T) {
 	require.Equal(t, 200, w.Code)
 	require.Contains(t, w.Body.String(), "observabilityx_eventx_publish_total")
 }
+
+func TestAdaptersReuseAlreadyRegisteredCounter(t *testing.T) {
+	t.Parallel()
+
+	registry := prom.NewRegistry()
+	first := promobs.New(promobs.WithRegisterer(registry))
+	second := promobs.New(promobs.WithRegisterer(registry))
+	spec := observabilityx.NewCounterSpec("shared_total")
+
+	first.Counter(spec).Add(context.Background(), 1)
+	second.Counter(spec).Add(context.Background(), 1)
+
+	metrics, err := registry.Gather()
+	require.NoError(t, err)
+	require.Len(t, metrics, 1)
+	require.Len(t, metrics[0].Metric, 1)
+	require.Equal(t, float64(2), metrics[0].Metric[0].GetCounter().GetValue())
+}
+
+func TestAdaptersReuseAlreadyRegisteredCollectors(t *testing.T) {
+	t.Parallel()
+
+	registry := prom.NewRegistry()
+	first := promobs.New(promobs.WithRegisterer(registry))
+	second := promobs.New(promobs.WithRegisterer(registry))
+	ctx := context.Background()
+
+	first.Counter(observabilityx.NewCounterSpec("shared_counter_total")).Add(ctx, 1)
+	second.Counter(observabilityx.NewCounterSpec("shared_counter_total")).Add(ctx, 1)
+	first.UpDownCounter(observabilityx.NewUpDownCounterSpec("shared_up_down_total")).Add(ctx, 1)
+	second.UpDownCounter(observabilityx.NewUpDownCounterSpec("shared_up_down_total")).Add(ctx, 1)
+	first.Histogram(observabilityx.NewHistogramSpec("shared_histogram")).Record(ctx, 1)
+	second.Histogram(observabilityx.NewHistogramSpec("shared_histogram")).Record(ctx, 1)
+	first.Gauge(observabilityx.NewGaugeSpec("shared_gauge")).Set(ctx, 1)
+	second.Gauge(observabilityx.NewGaugeSpec("shared_gauge")).Set(ctx, 2)
+
+	metrics, err := registry.Gather()
+	require.NoError(t, err)
+	require.Len(t, metrics, 4)
+
+	for _, metricFamily := range metrics {
+		require.Len(t, metricFamily.Metric, 1)
+		switch metricFamily.GetName() {
+		case "observabilityx_shared_counter_total":
+			require.Equal(t, float64(2), metricFamily.Metric[0].GetCounter().GetValue())
+		case "observabilityx_shared_histogram":
+			require.Equal(t, uint64(2), metricFamily.Metric[0].GetHistogram().GetSampleCount())
+		case "observabilityx_shared_up_down_total", "observabilityx_shared_gauge":
+			require.Equal(t, float64(2), metricFamily.Metric[0].GetGauge().GetValue())
+		default:
+			t.Fatalf("unexpected metric family %q", metricFamily.GetName())
+		}
+	}
+}

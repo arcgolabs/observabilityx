@@ -32,8 +32,8 @@ func (a *Adapter) counter(spec observabilityx.CounterSpec) (*counterInstrument, 
 	}, labelNames)
 
 	if err := a.register.Register(vec); err != nil {
-		alreadyRegisteredError, ok := errors.AsType[*prom.AlreadyRegisteredError](err)
-		if !ok || alreadyRegisteredError == nil {
+		alreadyRegisteredError, ok := asAlreadyRegisteredError(err)
+		if !ok {
 			return nil, wrapRegistrationError("create_counter", spec.Name, len(labelNames), err)
 		}
 		existingVec, ok := alreadyRegisteredError.ExistingCollector.(*prom.CounterVec)
@@ -96,8 +96,8 @@ func (a *Adapter) histogram(spec observabilityx.HistogramSpec) (*histInstrument,
 	}, labelNames)
 
 	if err := a.register.Register(vec); err != nil {
-		alreadyRegisteredError, ok := errors.AsType[*prom.AlreadyRegisteredError](err)
-		if !ok || alreadyRegisteredError == nil {
+		alreadyRegisteredError, ok := asAlreadyRegisteredError(err)
+		if !ok {
 			return nil, wrapRegistrationError("create_histogram", spec.Name, len(labelNames), err)
 		}
 		existingVec, ok := alreadyRegisteredError.ExistingCollector.(*prom.HistogramVec)
@@ -146,8 +146,8 @@ func (a *Adapter) registerGaugeInstrument(op string, spec observabilityx.MetricS
 	}, labelNames)
 
 	if err := a.register.Register(vec); err != nil {
-		alreadyRegisteredError, ok := errors.AsType[*prom.AlreadyRegisteredError](err)
-		if !ok || alreadyRegisteredError == nil {
+		alreadyRegisteredError, ok := asAlreadyRegisteredError(err)
+		if !ok {
 			return nil, wrapRegistrationError(op, spec.Name, len(labelNames), err)
 		}
 		existingVec, ok := alreadyRegisteredError.ExistingCollector.(*prom.GaugeVec)
@@ -162,6 +162,16 @@ func (a *Adapter) registerGaugeInstrument(op string, spec observabilityx.MetricS
 		labels: labelNames,
 		vec:    vec,
 	}, nil
+}
+
+func asAlreadyRegisteredError(err error) (prom.AlreadyRegisteredError, bool) {
+	if value, ok := errors.AsType[prom.AlreadyRegisteredError](err); ok {
+		return value, true
+	}
+	if pointer, ok := errors.AsType[*prom.AlreadyRegisteredError](err); ok && pointer != nil {
+		return *pointer, true
+	}
+	return prom.AlreadyRegisteredError{}, false
 }
 
 func helpText(description, metricName string) string {
